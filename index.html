@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Pipisa Bot — Админ</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg:        #0d0d1a;
+      --bg2:       #13132a;
+      --bg3:       #1a1a35;
+      --card:      #1e1e3f;
+      --border:    #2e2e5e;
+      --accent:    #7c5cfc;
+      --accent2:   #a78bfa;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #eab308;
+      --text:      #e8e8ff;
+      --text2:     #9999cc;
+      --radius:    14px;
+      --shadow:    0 4px 24px rgba(124,92,252,.18);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, 'Segoe UI', sans-serif; }
+
+    /* ── Layout ── */
+    #app { display: flex; flex-direction: column; min-height: 100vh; }
+    #header {
+      background: linear-gradient(135deg, #1a0a3e 0%, #0d0d1a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    #header .logo { font-size: 28px; }
+    #header h1 { font-size: 18px; font-weight: 700; color: var(--accent2); }
+    #header .sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    #header .badge {
+      margin-left: auto; background: var(--accent);
+      border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600;
+    }
+
+    /* ── Access denied ── */
+    #denied { display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 80vh; gap: 16px; text-align: center; padding: 24px; }
+    #denied .icon { font-size: 64px; }
+    #denied h2 { font-size: 22px; color: var(--red); }
+    #denied p { color: var(--text2); font-size: 14px; max-width: 280px; }
+
+    /* ── Nav tabs ── */
+    #nav {
+      display: flex; overflow-x: auto; gap: 6px;
+      padding: 10px 14px; background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      scrollbar-width: none;
+    }
+    #nav::-webkit-scrollbar { display: none; }
+    .nav-btn {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      border: 1px solid var(--border); background: var(--bg3);
+      color: var(--text2); font-size: 13px; cursor: pointer;
+      transition: all .2s; white-space: nowrap;
+    }
+    .nav-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .nav-btn:hover:not(.active) { border-color: var(--accent2); color: var(--accent2); }
+
+    /* ── Content ── */
+    #content { flex: 1; padding: 16px; overflow-y: auto; }
+
+    /* ── Cards ── */
+    .section { margin-bottom: 20px; }
+    .section-title {
+      font-size: 13px; font-weight: 700; color: var(--text2);
+      text-transform: uppercase; letter-spacing: .8px;
+      margin-bottom: 10px; padding-left: 4px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+      box-shadow: var(--shadow); margin-bottom: 10px;
+    }
+
+    /* ── Stats grid ── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; text-align: center;
+    }
+    .stat-icon { font-size: 24px; margin-bottom: 4px; }
+    .stat-val { font-size: 22px; font-weight: 800; color: var(--accent2); }
+    .stat-lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* ── Setting row ── */
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 13px; color: var(--text); flex: 1; padding-right: 12px; }
+    .setting-input {
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 6px 10px;
+      font-size: 13px; width: 90px; text-align: right;
+      transition: border-color .2s;
+    }
+    .setting-input:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Toggle ── */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 13px; color: var(--text); }
+    .toggle {
+      position: relative; width: 44px; height: 24px; cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 24px; transition: .3s;
+    }
+    .slider:before {
+      content: ''; position: absolute;
+      height: 16px; width: 16px; left: 3px; bottom: 3px;
+      background: var(--text2); border-radius: 50%; transition: .3s;
+    }
+    input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); background: #fff; }
+
+    /* ── Player rows ── */
+    .player-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+    }
+    .player-row:last-child { border-bottom: none; }
+    .player-row:hover { background: rgba(124,92,252,.06); border-radius: 8px; padding-left: 6px; }
+    .player-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .player-name { font-size: 14px; font-weight: 600; }
+    .player-info { font-size: 11px; color: var(--text2); margin-top: 1px; }
+    .player-size { margin-left: auto; font-size: 15px; font-weight: 700; color: var(--accent2); }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 10px 18px; border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all .2s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-danger  { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid var(--red); }
+    .btn-success { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid var(--green); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .btn-full { width: 100%; justify-content: center; margin-top: 8px; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.7); z-index: 200;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2); border-radius: 20px 20px 0 0;
+      padding: 20px; width: 100%; max-width: 500px;
+      border: 1px solid var(--border); border-bottom: none;
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+    .modal-field { margin-bottom: 12px; }
+    .modal-field label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+    .modal-field input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 14px;
+    }
+    .modal-field input:focus { outline: none; border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .modal-actions .btn { flex: 1; justify-content: center; }
+
+    /* ── Promo list ── */
+    .promo-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px; background: var(--bg3); border-radius: 10px;
+      margin-bottom: 8px; border: 1px solid var(--border);
+    }
+    .promo-code { font-family: monospace; font-size: 15px; font-weight: 700; color: var(--accent2); }
+    .promo-info { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .badge-active  { background: rgba(34,197,94,.15); color: var(--green); border-radius: 6px; padding: 2px 8px; font-size: 11px; }
+    .badge-inactive{ background: rgba(239,68,68,.15); color: var(--red); border-radius: 6px; padding: 2px 8px; font-size: 11px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff; padding: 10px 22px;
+      border-radius: 20px; font-size: 14px; font-weight: 600;
+      opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Loading ── */
+    .loader {
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px; color: var(--text2); flex-direction: column; gap: 12px;
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Input group ── */
+    .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
+    .input-group input {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 14px;
+    }
+    .input-group input:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Save bar ── */
+    #save-bar {
+      position: sticky; bottom: 0; background: var(--bg2);
+      border-top: 1px solid var(--border); padding: 12px 16px;
+      display: none; z-index: 50;
+    }
+    #save-bar.visible { display: block; }
+
+    /* ── Event log ── */
+    .event-item {
+      padding: 8px 12px; border-left: 3px solid var(--accent);
+      background: var(--bg3); border-radius: 0 8px 8px 0;
+      margin-bottom: 8px; font-size: 13px;
+    }
+    .event-time { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="logo">🍆</div>
+    <div>
+      <h1>Pipisa Admin</h1>
+      <div class="sub">Панель управления</div>
+    </div>
+    <div class="badge" id="admin-badge">🔒 Загрузка...</div>
+  </div>
+
+  <div id="denied" style="display:none">
+    <div class="icon">🚫</div>
+    <h2>Доступ запрещён</h2>
+    <p>Эта панель доступна только администратору бота.</p>
+  </div>
+
+  <div id="main-ui" style="display:none">
+    <div id="nav">
+      <button class="nav-btn active" onclick="showTab('dashboard')">📊 Дашборд</button>
+      <button class="nav-btn" onclick="showTab('players')">👥 Игроки</button>
+      <button class="nav-btn" onclick="showTab('promos')">🎟 Промокоды</button>
+      <button class="nav-btn" onclick="showTab('settings')">⚙️ Настройки</button>
+      <button class="nav-btn" onclick="showTab('toggles')">🔧 Функции</button>
+      <button class="nav-btn" onclick="showTab('economy')">💰 Экономика</button>
+      <button class="nav-btn" onclick="showTab('events')">🌍 События</button>
+      <button class="nav-btn" onclick="showTab('bank')">🏦 Банк</button>
+      <button class="nav-btn" onclick="showTab('danger')">⚠️ Опасно</button>
+    </div>
+    <div id="content"></div>
+    <div id="save-bar">
+      <button class="btn btn-primary btn-full" onclick="saveSettings()">💾 Сохранить изменения</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal" id="modal-body"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const ADMIN_ID = 5368770030;
+const BOT_API  = ""; // Set your backend URL here, e.g. https://your-api.com
+// If empty, runs in demo mode with mock data
+
+// ═══════════════════════════════════════════════════════
+// TELEGRAM WEBAPP INIT
+// ═══════════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+let currentUserId = null;
+let isAdmin = false;
+let pendingChanges = {};
+
+function initTelegram() {
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor('#0d0d1a');
+    tg.setBackgroundColor('#0d0d1a');
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+      currentUserId = user.id;
+      isAdmin = (user.id === ADMIN_ID);
+    }
+  } else {
+    // Dev mode: treat as admin
+    isAdmin = true;
+    currentUserId = ADMIN_ID;
+  }
+
+  if (!isAdmin) {
+    document.getElementById('denied').style.display = 'flex';
+    document.getElementById('admin-badge').textContent = '🚫 Нет доступа';
+    return;
+  }
+
+  document.getElementById('main-ui').style.display = 'flex';
+  document.getElementById('main-ui').style.flexDirection = 'column';
+  document.getElementById('admin-badge').textContent = '✅ Админ';
+  showTab('dashboard');
+}
+
+// ═══════════════════════════════════════════════════════
+// API LAYER (mock + real)
+// ═══════════════════════════════════════════════════════
+const MOCK = {
+  stats: { chats: 12, players: 847, promos: 23, active_promos: 8, total_loans: 156, total_deposited: 2840000 },
+  settings: {
+    dick_min_cm: "-5", dick_max_cm: "10", dick_cooldown_hours: "24",
+    coins_per_dick: "5", coins_per_positive: "10",
+    casino_min_bet: "10", casino_max_bet: "500", casino_win_chance: "45",
+    casino_jackpot_chance: "5", casino_jackpot_multiplier: "10",
+    duel_default_stake: "5", duel_max_stake: "50",
+    rare_nuclear_chance: "1", rare_nuclear_cm: "50",
+    rare_mars_chance: "2", rare_mars_cm: "30",
+    rare_shark_chance: "2", rare_shark_cm: "20",
+    rare_alien_chance: "1",
+    bank_deposit_regular_rate: "1", bank_deposit_premium_rate: "3",
+    bank_loan_max: "100000", bank_loan_interest_day: "2",
+    event_interval_hours: "4", meteor_interval_hours: "6",
+    lottery_ticket_min: "10", lottery_ticket_max: "10000",
+    container_common_price: "50", container_rare_price: "150",
+    container_epic_price: "400", container_legendary_price: "1000",
+    container_mythic_price: "3000",
+    secret_entry_cost: "50000", secret_currency_per_day: "10",
+    project_goal_coins: "1000000",
+    daily_coins_min: "20", daily_coins_max: "50",
+  },
+  toggles: {
+    casino_enabled: "1", shop_enabled: "1", duel_enabled: "1",
+    clans_enabled: "1", quests_enabled: "1", achievements_enabled: "1",
+    daily_enabled: "1", rare_events_enabled: "1", mutation_enabled: "1",
+    rob_enabled: "1", spy_enabled: "1", boss_enabled: "1",
+    dungeon_enabled: "1", space_enabled: "1", politics_enabled: "1",
+    alchemy_enabled: "1", minigame_enabled: "1", event_enabled: "1",
+    bank_enabled: "1", lottery_enabled: "1", container_enabled: "1",
+    puzzle_enabled: "1", meteor_enabled: "1", auction_enabled: "1",
+    experiment_enabled: "1", smuggle_enabled: "1", project_enabled: "1",
+    secret_enabled: "1", news_enabled: "1",
+  },
+  players: [
+    { user_id: 111, username: "hlopchik", first_name: "Хлопчик", size: 264, coins: 15200, luck: 75, chat_id: -100123 },
+    { user_id: 222, username: "matvey", first_name: "Матвей", size: 198, coins: 8400, luck: 60, chat_id: -100123 },
+    { user_id: 333, username: "rodion", first_name: "Родион", size: 156, coins: 22000, luck: 50, chat_id: -100123 },
+    { user_id: 444, username: null, first_name: "Игрок4", size: 89, coins: 3100, luck: 45, chat_id: -100123 },
+    { user_id: 555, username: "plow_lider", first_name: "PLOW", size: 77, coins: 9800, luck: 55, chat_id: -100123 },
+  ],
+  promos: [
+    { code: "SUMMER25", cm: 15, max_uses: 100, used_count: 47, is_active: 1, created_at: "2025-06-01T10:00:00" },
+    { code: "VIPCODE", cm: 50, max_uses: 10, used_count: 10, is_active: 0, created_at: "2025-05-15T14:00:00" },
+    { code: "BOSS100", cm: -10, max_uses: 999, used_count: 3, is_active: 1, created_at: "2025-06-03T09:00:00" },
+  ],
+  news: [
+    { text: "🎰 @rodion выиграл 500,000 🪙 в казино!", created_at: "2025-06-05T18:30:00" },
+    { text: "🏆 Клан [EPIC] захватил лидерство по суммарному размеру!", created_at: "2025-06-05T16:00:00" },
+    { text: "☄️ Метеорит упал! Первым добрался @hlopchik", created_at: "2025-06-05T12:00:00" },
+    { text: "💀 @matvey объявлен банкротом! Коллекторы описали имущество.", created_at: "2025-06-04T20:00:00" },
+  ],
+};
+
+async function api(endpoint, method = 'GET', body = null) {
+  if (!BOT_API) return mockApi(endpoint, body);
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': tg?.initData || '' } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(BOT_API + endpoint, opts);
+    return await r.json();
+  } catch (e) {
+    return mockApi(endpoint, body);
+  }
+}
+
+function mockApi(endpoint, body) {
+  if (endpoint === '/stats')    return { ok: true, data: MOCK.stats };
+  if (endpoint === '/settings') return { ok: true, data: MOCK.settings };
+  if (endpoint === '/toggles')  return { ok: true, data: MOCK.toggles };
+  if (endpoint === '/players')  return { ok: true, data: MOCK.players };
+  if (endpoint === '/promos')   return { ok: true, data: MOCK.promos };
+  if (endpoint === '/news')     return { ok: true, data: MOCK.news };
+  if (endpoint.startsWith('/settings/save')) { Object.assign(MOCK.settings, body); return { ok: true }; }
+  if (endpoint.startsWith('/toggles/save'))  { Object.assign(MOCK.toggles,  body); return { ok: true }; }
+  if (endpoint.startsWith('/promos/create')) { MOCK.promos.unshift({...body, used_count:0, created_at: new Date().toISOString()}); return { ok: true }; }
+  if (endpoint.startsWith('/promos/delete')) { const c = endpoint.split('/')[3]; MOCK.promos = MOCK.promos.filter(p=>p.code!==c); return { ok: true }; }
+  if (endpoint.startsWith('/promos/toggle')) { const c = endpoint.split('/')[3]; const p = MOCK.promos.find(x=>x.code===c); if(p) p.is_active = p.is_active ? 0 : 1; return { ok: true }; }
+  if (endpoint.startsWith('/player/')) {
+    const [,, uid, action] = endpoint.split('/');
+    const p = MOCK.players.find(x => x.user_id == uid);
+    if (p && body) Object.assign(p, body);
+    return { ok: true };
+  }
+  return { ok: true };
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB SYSTEM
+// ═══════════════════════════════════════════════════════
+let currentTab = '';
+function showTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-btn').forEach((b, i) => {
+    const tabs = ['dashboard','players','promos','settings','toggles','economy','events','bank','danger'];
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loader"><div class="spinner"></div><span>Загрузка...</span></div>';
+  document.getElementById('save-bar').classList.remove('visible');
+  pendingChanges = {};
+  setTimeout(() => renderTab(tab), 150);
+}
+
+async function renderTab(tab) {
+  const c = document.getElementById('content');
+  switch(tab) {
+    case 'dashboard': c.innerHTML = await buildDashboard(); break;
+    case 'players':   c.innerHTML = await buildPlayers();   break;
+    case 'promos':    c.innerHTML = await buildPromos();     break;
+    case 'settings':  c.innerHTML = await buildSettings();  document.getElementById('save-bar').classList.add('visible'); break;
+    case 'toggles':   c.innerHTML = await buildToggles();   break;
+    case 'economy':   c.innerHTML = await buildEconomy();   document.getElementById('save-bar').classList.add('visible'); break;
+    case 'events':    c.innerHTML = await buildEvents();    document.getElementById('save-bar').classList.add('visible'); break;
+    case 'bank':      c.innerHTML = await buildBank();      document.getElementById('save-bar').classList.add('visible'); break;
+    case 'danger':    c.innerHTML = buildDanger();          break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+async function buildDashboard() {
+  const { data: s } = await api('/stats');
+  const { data: news } = await api('/news');
+  const newsHtml = news.slice(0,5).map(n => `
+    <div class="event-item">
+      ${n.text}
+      <div class="event-time">${new Date(n.created_at).toLocaleString('ru')}</div>
+    </div>`).join('');
+
+  return `
+    <div class="section">
+      <div class="section-title">📊 Статистика</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-val">${s.chats}</div><div class="stat-lbl">Чатов</div></div>
+        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val">${s.players}</div><div class="stat-lbl">Игроков</div></div>
+        <div class="stat-card"><div class="stat-icon">🎟</div><div class="stat-val">${s.active_promos}</div><div class="stat-lbl">Активных промо</div></div>
+        <div class="stat-card"><div class="stat-icon">🏦</div><div class="stat-val">${(s.total_deposited/1000).toFixed(0)}K</div><div class="stat-lbl">Во вкладах 🪙</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">📰 Последние новости</div>
+      <div class="card">${newsHtml || '<div style="color:var(--text2);text-align:center;padding:20px">Новостей нет</div>'}</div>
+    </div>
+    <div class="section">
+      <div class="section-title">⚡ Быстрые действия</div>
+      <div class="card">
+        <button class="btn btn-primary btn-full" onclick="showTab('promos')">➕ Создать промокод</button>
+        <button class="btn btn-success btn-full" onclick="showTab('toggles')" style="margin-top:8px">🔧 Вкл/Выкл функции</button>
+        <button class="btn btn-danger btn-full" onclick="showTab('danger')" style="margin-top:8px">⚠️ Опасные действия</button>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAYERS
+// ═══════════════════════════════════════════════════════
+async function buildPlayers() {
+  const { data: players } = await api('/players');
+  const rows = players.map(p => {
+    const name = p.username ? `@${p.username}` : p.first_name;
+    return `<div class="player-row" onclick="openPlayer(${p.user_id}, '${name}', ${p.size}, ${p.coins}, ${p.luck}, ${p.chat_id})">
+      <div class="player-avatar">🍆</div>
+      <div>
+        <div class="player-name">${name}</div>
+        <div class="player-info">💰 ${p.coins.toLocaleString()} 🪙 • 🍀 ${p.luck}%</div>
+      </div>
+      <div class="player-size">${p.size} см</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="section">
+      <div class="section-title">👥 Игроки (${players.length})</div>
+      <div class="input-group" style="margin-bottom:12px">
+        <input type="text" placeholder="🔍 Поиск..." oninput="filterPlayers(this.value)" id="player-search"/>
+      </div>
+      <div class="card" id="player-list">${rows}</div>
+    </div>`;
+}
+
+function filterPlayers(q) {
+  document.querySelectorAll('.player-row').forEach(row => {
+    const name = row.querySelector('.player-name').textContent.toLowerCase();
+    row.style.display = name.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function openPlayer(uid, name, size, coins, luck, chatId) {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-title">👤 ${name}</div>
+    <div class="modal-field"><label>📏 Размер (см)</label><input type="number" id="edit-size" value="${size}"/></div>
+    <div class="modal-field"><label>💰 Монеты</label><input type="number" id="edit-coins" value="${coins}"/></div>
+    <div class="modal-field"><label>🍀 Удача (0–100)</label><input type="number" id="edit-luck" value="${luck}" min="0" max="100"/></div>
+    <div class="modal-field"><label>⏱ Кулдаун (ч, 0 = сбросить)</label><input type="number" id="edit-cd" value="24"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="savePlayer(${uid}, ${chatId})">💾 Сохранить</button>
+      <button class="btn btn-danger" onclick="resetPlayer(${uid}, ${chatId})">🔄 Сброс</button>
+    </div>
+    <button class="btn btn-full" onclick="closeModal()" style="margin-top:8px;background:var(--bg3);color:var(--text2)">Отмена</button>`;
+  openModal();
+}
+
+async function savePlayer(uid, chatId) {
+  const size = +document.getElementById('edit-size').value;
+  const coins = +document.getElementById('edit-coins').value;
+  const luck = +document.getElementById('edit-luck').value;
+  const cd = +document.getElementById('edit-cd').value;
+  await api(`/player/${uid}/update`, 'POST', { size, coins, luck, cooldown_hours: cd, chat_id: chatId });
+  closeModal(); toast('✅ Игрок обновлён!'); showTab('players');
+}
+
+async function resetPlayer(uid, chatId) {
+  if (!confirm('Сбросить игрока?')) return;
+  await api(`/player/${uid}/reset`, 'POST', { chat_id: chatId });
+  closeModal(); toast('🔄 Игрок сброшен!'); showTab('players');
+}
+
+// ═══════════════════════════════════════════════════════
+// PROMOS
+// ═══════════════════════════════════════════════════════
+async function buildPromos() {
+  const { data: promos } = await api('/promos');
+  const rows = promos.map(p => `
+    <div class="promo-row">
+      <div>
+        <div class="promo-code">${p.code}</div>
+        <div class="promo-info">${p.cm > 0 ? '+' : ''}${p.cm} см • ${p.used_count}/${p.max_uses} использований</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Активен' : 'Откл.'}</span>
+        <button class="btn btn-sm" onclick="togglePromo('${p.code}')" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)">⚡</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePromo('${p.code}')">🗑</button>
+      </div>
+    </div>`).join('');
+
+  return `
+    <div class="section">
+      <div class="section-title">🎟 Промокоды (${promos.length})</div>
+      <button class="btn btn-primary btn-full" onclick="openCreatePromo()" style="margin-bottom:12px">➕ Создать промокод</button>
+      <div>${rows || '<div class="card" style="text-align:center;color:var(--text2);padding:20px">Промокодов нет</div>'}</div>
+    </div>`;
+}
+
+function openCreatePromo() {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-title">➕ Новый промокод</div>
+    <div class="modal-field">
+      <label>Код (пусто = случайный)</label>
+      <input type="text" id="promo-code" placeholder="SUMMER25" style="text-transform:uppercase"/>
+    </div>
+    <div class="modal-field"><label>Сантиметры (можно отрицательное)</label><input type="number" id="promo-cm" value="10"/></div>
+    <div class="modal-field"><label>Количество активаций</label><input type="number" id="promo-uses" value="100" min="1"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="createPromo()">✅ Создать</button>
+      <button class="btn" onclick="closeModal()" style="background:var(--bg3);color:var(--text2)">Отмена</button>
+    </div>`;
+  openModal();
+}
+
+async function createPromo() {
+  let code = document.getElementById('promo-code').value.trim().toUpperCase();
+  if (!code) code = Math.random().toString(36).slice(2,8).toUpperCase();
+  const cm = +document.getElementById('promo-cm').value;
+  const uses = +document.getElementById('promo-uses').value;
+  await api('/promos/create', 'POST', { code, cm, max_uses: uses, is_active: 1 });
+  closeModal(); toast(`✅ Промокод ${code} создан!`); showTab('promos');
+}
+
+async function togglePromo(code) {
+  await api(`/promos/toggle/${code}`, 'POST');
+  toast('⚡ Статус изменён!'); showTab('promos');
+}
+
+async function deletePromo(code) {
+  if (!confirm(`Удалить ${code}?`)) return;
+  await api(`/promos/delete/${code}`, 'POST');
+  toast('🗑 Удалён!'); showTab('promos');
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS (Dick / Casino / Duel / Rare)
+// ═══════════════════════════════════════════════════════
+async function buildSettings() {
+  const { data: s } = await api('/settings');
+  return `
+    <div class="section">
+      <div class="section-title">🍆 Команда /dick</div>
+      <div class="card">
+        ${settingRow('dick_min_cm',          'Мин. изменение (см)', s)}
+        ${settingRow('dick_max_cm',          'Макс. изменение (см)', s)}
+        ${settingRow('dick_cooldown_hours',  'Кулдаун (ч)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🎰 Казино</div>
+      <div class="card">
+        ${settingRow('casino_min_bet',             'Мин. ставка (🪙)', s)}
+        ${settingRow('casino_max_bet',             'Макс. ставка (🪙)', s)}
+        ${settingRow('casino_win_chance',          'Шанс победы (%)', s)}
+        ${settingRow('casino_jackpot_chance',      'Шанс джекпота (%)', s)}
+        ${settingRow('casino_jackpot_multiplier',  'Множитель джекпота', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">⚔️ Дуэли</div>
+      <div class="card">
+        ${settingRow('duel_default_stake',   'Ставка по умолч. (см)', s)}
+        ${settingRow('duel_max_stake',       'Макс. ставка (см)', s)}
+        ${settingRow('duel_timeout_minutes', 'Таймаут принятия (мин)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">💣 Редкие события</div>
+      <div class="card">
+        ${settingRow('rare_nuclear_chance', '☢️ Ядерная мутация %', s)}
+        ${settingRow('rare_nuclear_cm',     '☢️ Ядерная мутация +см', s)}
+        ${settingRow('rare_mars_chance',    '🚀 Марс %', s)}
+        ${settingRow('rare_mars_cm',        '🚀 Марс +см', s)}
+        ${settingRow('rare_shark_chance',   '🦈 Акула %', s)}
+        ${settingRow('rare_shark_cm',       '🦈 Акула -см', s)}
+        ${settingRow('rare_alien_chance',   '👽 Пришельцы %', s)}
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// TOGGLES
+// ═══════════════════════════════════════════════════════
+async function buildToggles() {
+  const { data: t } = await api('/toggles');
+  const ITEMS = [
+    ['casino_enabled','🎰 Казино'],['shop_enabled','🛒 Магазин'],
+    ['duel_enabled','⚔️ Дуэли'],['clans_enabled','👑 Кланы'],
+    ['quests_enabled','🎯 Квесты'],['achievements_enabled','🏅 Достижения'],
+    ['daily_enabled','🎁 Daily'],['rare_events_enabled','💣 Редкие события'],
+    ['mutation_enabled','🦠 Мутации'],['rob_enabled','🦹 Ограбления'],
+    ['spy_enabled','🕵️ Шпионаж'],['boss_enabled','👹 Боссы'],
+    ['dungeon_enabled','🗺 Подземелья'],['space_enabled','🚀 Космос'],
+    ['politics_enabled','🏛 Политика'],['alchemy_enabled','⚗️ Алхимия'],
+    ['minigame_enabled','🎮 Мини-игры'],['event_enabled','🌍 Мировые события'],
+    ['bank_enabled','🏦 Банк'],['lottery_enabled','🎫 Лотерея'],
+    ['container_enabled','🎁 Контейнеры'],['puzzle_enabled','🧩 Загадки'],
+    ['meteor_enabled','☄️ Метеорит'],['auction_enabled','🗝 Аукцион'],
+    ['experiment_enabled','🧪 Эксперименты'],['smuggle_enabled','📦 Контрабанда'],
+    ['project_enabled','🏰 Серверный проект'],['secret_enabled','🌑 Тайное общество'],
+    ['news_enabled','📰 Газета'],
+  ];
+  const rows = ITEMS.map(([key, label]) => `
+    <div class="toggle-row">
+      <span class="toggle-label">${label}</span>
+      <label class="toggle">
+        <input type="checkbox" ${t[key]==='1'?'checked':''} onchange="toggleChanged('${key}', this.checked)"/>
+        <span class="slider"></span>
+      </label>
+    </div>`).join('');
+
+  return `
+    <div class="section">
+      <div class="section-title">🔧 Включение / Отключение функций</div>
+      <div class="card">${rows}</div>
+    </div>`;
+}
+
+async function toggleChanged(key, val) {
+  await api('/toggles/save', 'POST', { [key]: val ? '1' : '0' });
+  toast(`${val ? '✅ Включено' : '❌ Выключено'}`);
+}
+
+// ═══════════════════════════════════════════════════════
+// ECONOMY
+// ═══════════════════════════════════════════════════════
+async function buildEconomy() {
+  const { data: s } = await api('/settings');
+  return `
+    <div class="section">
+      <div class="section-title">💰 Монеты</div>
+      <div class="card">
+        ${settingRow('coins_per_dick',     'За /dick (🪙)', s)}
+        ${settingRow('coins_per_positive', 'Бонус за плюс (🪙)', s)}
+        ${settingRow('daily_coins_min',    'Daily мин. (🪙)', s)}
+        ${settingRow('daily_coins_max',    'Daily макс. (🪙)', s)}
+        ${settingRow('daily_cm_chance',    'Daily шанс бонус см (%)', s)}
+        ${settingRow('daily_cm_amount',    'Daily бонус (см)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🛒 Цены магазина</div>
+      <div class="card">
+        ${settingRow('price_luck_boost',      '🍀 Удача +10 (🪙)', s)}
+        ${settingRow('price_cooldown_reduce', '⚡ Сброс КД (🪙)', s)}
+        ${settingRow('price_shield',          '🛡 Щит (🪙)', s)}
+        ${settingRow('price_extra_attempt',   '🎁 Доп. попытка (🪙)', s)}
+        ${settingRow('price_pet_cat',         '🐱 Кот (🪙)', s)}
+        ${settingRow('price_pet_dragon',      '🐉 Дракон (🪙)', s)}
+        ${settingRow('price_pet_hamster',     '🐹 Хомяк (🪙)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🎫 Лотерея</div>
+      <div class="card">
+        ${settingRow('lottery_ticket_min', 'Мин. ставка (🪙)', s)}
+        ${settingRow('lottery_ticket_max', 'Макс. ставка (🪙)', s)}
+        ${settingRow('lottery_fee_pct',    'Комиссия (%)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🎁 Контейнеры</div>
+      <div class="card">
+        ${settingRow('container_common_price',    '📦 Обычный (🪙)', s)}
+        ${settingRow('container_rare_price',      '🔵 Редкий (🪙)', s)}
+        ${settingRow('container_epic_price',      '🟣 Эпический (🪙)', s)}
+        ${settingRow('container_legendary_price', '🟡 Легендарный (🪙)', s)}
+        ${settingRow('container_mythic_price',    '🔴 Мифический (🪙)', s)}
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════════════
+async function buildEvents() {
+  const { data: s } = await api('/settings');
+  return `
+    <div class="section">
+      <div class="section-title">🌍 Мировые события</div>
+      <div class="card">
+        ${settingRow('event_interval_hours', 'Интервал (ч)', s)}
+        ${settingRow('event_flood_cm',       '🌊 Наводнение (см)', s)}
+        ${settingRow('event_nuclear_cm',     '☢️ Война (см)', s)}
+        ${settingRow('event_goldrush_coins', '💰 Лихорадка (🪙)', s)}
+        ${settingRow('event_alien_cm_min',   '👽 Пришельцы мин.', s)}
+        ${settingRow('event_alien_cm_max',   '👽 Пришельцы макс.', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">☄️ Метеорит</div>
+      <div class="card">
+        ${settingRow('meteor_interval_hours', 'Интервал (ч)', s)}
+        ${settingRow('meteor_cm_reward',      'Награда (см)', s)}
+        ${settingRow('meteor_coins_reward',   'Награда (🪙)', s)}
+        ${settingRow('meteor_max_claimers',   'Макс. получателей', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🧪 Эксперименты</div>
+      <div class="card">
+        ${settingRow('experiment_cost_coins',    'Стоимость (🪙)', s)}
+        ${settingRow('experiment_cooldown_hours','Кулдаун (ч)', s)}
+        ${settingRow('experiment_great_cm',      'Большой бонус (см)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">📦 Контрабанда</div>
+      <div class="card">
+        ${settingRow('smuggle_success_chance',   'Успех (%)', s)}
+        ${settingRow('smuggle_partial_chance',   'Частичный успех (%)', s)}
+        ${settingRow('smuggle_reward_coins_min', 'Мин. награда (🪙)', s)}
+        ${settingRow('smuggle_reward_coins_max', 'Макс. награда (🪙)', s)}
+        ${settingRow('smuggle_cooldown_hours',   'Кулдаун (ч)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🌑 Тайное общество</div>
+      <div class="card">
+        ${settingRow('secret_entry_cost',       'Взнос (🪙)', s)}
+        ${settingRow('secret_shop_discount',    'Скидка (%)', s)}
+        ${settingRow('secret_currency_per_day', 'Теневых монет/день', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🏰 Серверный проект</div>
+      <div class="card">
+        ${settingRow('project_goal_coins',     'Цель монеты', s)}
+        ${settingRow('project_goal_resources', 'Цель ресурсы', s)}
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// BANK
+// ═══════════════════════════════════════════════════════
+async function buildBank() {
+  const { data: s } = await api('/settings');
+  return `
+    <div class="section">
+      <div class="section-title">💰 Вклады</div>
+      <div class="card">
+        ${settingRow('bank_deposit_regular_rate', 'Обычный %/день', s)}
+        ${settingRow('bank_deposit_premium_rate', 'Премиум %/день', s)}
+        ${settingRow('bank_deposit_risky_min',    'Рискованный мин %', s)}
+        ${settingRow('bank_deposit_risky_max',    'Рискованный макс %', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🏧 Кредиты</div>
+      <div class="card">
+        ${settingRow('bank_loan_max',          'Макс. кредит (🪙)', s)}
+        ${settingRow('bank_loan_interest_day', 'Процент %/день', s)}
+        ${settingRow('bank_loan_grace_days',   'Льготный период (дней)', s)}
+        ${settingRow('bank_cm_loan_max',       'Макс. СМ-кредит', s)}
+        ${settingRow('bank_quickloan_cm',      'Быстрый займ (см)', s)}
+        ${settingRow('bank_quickloan_repay_cm','Быстрый займ вернуть (см)', s)}
+        ${settingRow('bank_quickloan_hours',   'Быстрый займ срок (ч)', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">📈 Инвестиции</div>
+      <div class="card">
+        ${settingRow('bank_invest_conservative_min','Консерв. мин %', s)}
+        ${settingRow('bank_invest_conservative_max','Консерв. макс %', s)}
+        ${settingRow('bank_invest_balanced_min',    'Сбаланс. мин %', s)}
+        ${settingRow('bank_invest_balanced_max',    'Сбаланс. макс %', s)}
+        ${settingRow('bank_invest_aggressive_min',  'Агресс. мин %', s)}
+        ${settingRow('bank_invest_aggressive_max',  'Агресс. макс %', s)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🚨 Ограбление банка</div>
+      <div class="card">
+        ${settingRow('bank_heist_success_chance', 'Успех (%)', s)}
+        ${settingRow('bank_heist_partial_chance', 'Частичный (%)', s)}
+        ${settingRow('bank_heist_win_coins',      'Полный выигрыш (🪙)', s)}
+        ${settingRow('bank_heist_partial_coins',  'Частичный выигрыш (🪙)', s)}
+        ${settingRow('bank_heist_arrest_cm',      'Арест штраф (см)', s)}
+        ${settingRow('bank_heist_cooldown_hours', 'Кулдаун (ч)', s)}
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// DANGER ZONE
+// ═══════════════════════════════════════════════════════
+function buildDanger() {
+  return `
+    <div class="section">
+      <div class="section-title">⚠️ Опасная зона</div>
+      <div class="card">
+        <p style="color:var(--text2);font-size:13px;margin-bottom:14px">
+          Эти действия необратимы! Будь осторожен.
+        </p>
+        <button class="btn btn-danger btn-full" onclick="broadcastMessage()">
+          📢 Отправить объявление в чаты
+        </button>
+        <button class="btn btn-danger btn-full" onclick="triggerWorldEvent()">
+          🌍 Запустить мировое событие
+        </button>
+        <button class="btn btn-danger btn-full" onclick="spawnMeteor()">
+          ☄️ Уронить метеорит
+        </button>
+        <button class="btn btn-danger btn-full" onclick="forceDrawLottery()">
+          🎫 Форс-розыгрыш лотереи
+        </button>
+      </div>
+    </div>`;
+}
+
+async function broadcastMessage() {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-title">📢 Объявление</div>
+    <div class="modal-field">
+      <label>Текст (отправится во все активные чаты)</label>
+      <textarea id="broadcast-text" style="width:100%;background:var(--bg3);border:1px solid var(--border);
+        color:var(--text);border-radius:10px;padding:10px;font-size:14px;min-height:80px;resize:vertical"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="sendBroadcast()">📢 Отправить</button>
+      <button class="btn" onclick="closeModal()" style="background:var(--bg3);color:var(--text2)">Отмена</button>
+    </div>`;
+  openModal();
+}
+
+async function sendBroadcast() {
+  const text = document.getElementById('broadcast-text').value;
+  if (!text.trim()) { toast('❌ Введи текст!'); return; }
+  await api('/broadcast', 'POST', { text });
+  closeModal(); toast('📢 Отправлено!');
+}
+
+async function triggerWorldEvent() {
+  await api('/events/trigger', 'POST');
+  toast('🌍 Событие запущено!');
+}
+async function spawnMeteor() {
+  await api('/meteor/spawn', 'POST');
+  toast('☄️ Метеорит падает!');
+}
+async function forceDrawLottery() {
+  await api('/lottery/draw', 'POST');
+  toast('🎫 Розыгрыш запущен!');
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+function settingRow(key, label, settings) {
+  const val = settings[key] ?? '';
+  return `<div class="setting-row">
+    <span class="setting-label">${label}</span>
+    <input class="setting-input" type="number" value="${val}"
+      onchange="settingChanged('${key}', this.value)"
+      oninput="settingChanged('${key}', this.value)"/>
+  </div>`;
+}
+
+function settingChanged(key, val) {
+  pendingChanges[key] = val;
+}
+
+async function saveSettings() {
+  if (!Object.keys(pendingChanges).length) { toast('Нет изменений'); return; }
+  await api('/settings/save', 'POST', pendingChanges);
+  pendingChanges = {};
+  toast('✅ Настройки сохранены!');
+}
+
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ═══════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════
+initTelegram();
+</script>
+</body>
+</html>
