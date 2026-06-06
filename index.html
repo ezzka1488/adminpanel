@@ -6,7 +6,7 @@
   <title>Pipisa Admin</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root{
+    :root{  
       --bg:#0d0d1a;--bg2:#13132a;--bg3:#1a1a35;--card:#1e1e3f;
       --border:#2e2e5e;--acc:#7c5cfc;--acc2:#a78bfa;
       --green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316;
@@ -228,9 +228,7 @@ const ADMIN_ID  = 5368770030;
 // Если бот запущен на сервере с публичным IP:
 // const API = "http://ТВО_IP:8080";
 // Для локальной разработки: API = "http://localhost:8080"
-const API = window.location.hostname === 'localhost'
-  ? 'http://localhost:8080'
-  : '';  // ЗАМЕНИ НА ТВОЙ URL
+const API = 'http://188.146.155.18:8080';
 
 const tg   = window.Telegram?.WebApp;
 let uid    = null;
@@ -291,7 +289,7 @@ function demoData(path, body) {
   if (path==='/news')  return {ok:true,data:[{text:'🎰 @hlopchik выиграл джекпот!',created_at:new Date().toISOString()},{text:'☄️ Метеорит упал в чате!',created_at:new Date(Date.now()-3600000).toISOString()}]};
   if (path==='/settings') return {ok:true,data:{dick_min_cm:'-5',dick_max_cm:'10',dick_cooldown_hours:'24',coins_per_dick:'5',coins_per_positive:'10',casino_min_bet:'10',casino_max_bet:'500',casino_win_chance:'45',casino_jackpot_chance:'5',casino_jackpot_multiplier:'10',duel_default_stake:'5',duel_max_stake:'50',rare_nuclear_chance:'1',rare_nuclear_cm:'50',rare_mars_chance:'2',rare_mars_cm:'30',rare_shark_chance:'2',rare_shark_cm:'20',rare_alien_chance:'1',daily_coins_min:'20',daily_coins_max:'50',daily_cm_chance:'30',price_pet_cat:'200',price_pet_dragon:'500',bank_deposit_regular_rate:'1',bank_loan_max:'100000',event_interval_hours:'4',meteor_interval_hours:'6',lottery_ticket_min:'10',container_common_price:'50',secret_entry_cost:'50000',project_goal_coins:'1000000',experiment_cost_coins:'100',smuggle_success_chance:'50'}};
   if (path==='/toggles') return {ok:true,data:{casino_enabled:'1',shop_enabled:'1',duel_enabled:'1',clans_enabled:'1',quests_enabled:'1',achievements_enabled:'1',daily_enabled:'1',rare_events_enabled:'1',mutation_enabled:'1',rob_enabled:'1',spy_enabled:'1',boss_enabled:'1',dungeon_enabled:'1',space_enabled:'1',politics_enabled:'1',alchemy_enabled:'1',minigame_enabled:'1',event_enabled:'1',bank_enabled:'1',lottery_enabled:'1',container_enabled:'1',puzzle_enabled:'1',meteor_enabled:'1',auction_enabled:'1',experiment_enabled:'1',smuggle_enabled:'1',project_enabled:'1',secret_enabled:'1',news_enabled:'1'}};
-  if (path==='/players') return {ok:true,data:[{user_id:111,username:'hlopchik',first_name:'Хлопчик',size:264,coins:15200,luck:75,chat_id:-100123,cooldown_hours:24,casino_plays:45,duel_wins:12},{user_id:222,username:'matvey',first_name:'Матвей',size:198,coins:8400,luck:60,chat_id:-100123,cooldown_hours:24,casino_plays:22,duel_wins:5},{user_id:333,username:'rodion',first_name:'Родион',size:156,coins:22000,luck:50,chat_id:-100123,cooldown_hours:24,casino_plays:89,duel_wins:3}]};
+  if (path==='/players') return {ok:true,data:[{user_id:111,username:'hlopchik',first_name:'Хлопчик',size:264,coins:15200,luck:75,chat_id:-100123,cooldown_hours:24,casino_plays:45,duel_wins:12},{user_id:222,username:'matvey',first_name:'Матвей',size:198,coins:8400,luck:60,chat_id:-100123,cooldown_hours:24,casino_plays:22,duel_wins:5},{user_id:333,username:'hlopchik',first_name:'Родион',size:156,coins:22000,luck:50,chat_id:-100123,cooldown_hours:24,casino_plays:89,duel_wins:3}]};
   if (path==='/promos')  return {ok:true,data:[{code:'SUMMER25',cm:15,max_uses:100,used_count:47,is_active:1,created_at:'2025-06-01T10:00:00'},{code:'VIPCODE',cm:50,max_uses:10,used_count:10,is_active:0,created_at:'2025-05-15T14:00:00'}]};
   if (path==='/bank/stats') return {ok:true,data:{loans:8,total_borrowed:450000,biggest:100000,paid:3,total_deposited:85000,active_loans:5,total_shares:42}};
   if (path==='/leaderboard') return {ok:true,data:[{user_id:111,username:'hlopchik',best_size:264,total_coins:15200},{user_id:222,username:'matvey',best_size:198,total_coins:8400}]};
