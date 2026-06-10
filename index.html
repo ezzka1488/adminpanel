@@ -350,8 +350,7 @@ async function loadData() {
   document.getElementById('main').style.display='flex';
   document.getElementById('main').style.flexDirection='column';
   tab('dash');
-  // Auto-refresh every 30s
-  setTimeout(refreshData, 30000);
+  // Data is live from DB — refresh by switching tabs or clicking 🔄
 }
 
 async function refreshData() {
@@ -362,7 +361,6 @@ async function refreshData() {
     document.getElementById('sync-sub').textContent =
       'Обновлено: ' + gen.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
   }
-  setTimeout(refreshData, 30000);
 }
 
 // ════════════════════════════════════════════════════════
